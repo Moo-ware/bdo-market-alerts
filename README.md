@@ -2,7 +2,7 @@
 
 A Python Discord bot that monitors the Black Desert Online Central Market registration queue and sends personalized item alerts to subscribed users.
 
-This project was built around a practical event-driven workflow: poll a live marketplace endpoint, normalize queue records, compare new records against user subscriptions stored in SQLite, and deliver real-time notifications through Discord direct messages.
+The bot polls a live marketplace endpoint, normalizes queue records, compares new records against user subscriptions stored in SQLite, and delivers notifications through Discord direct messages.
 
 ## Highlights
 
@@ -38,12 +38,10 @@ This project was built around a practical event-driven workflow: poll a live mar
 .
 |-- main.py                     # Bot entrypoint and cog loading
 |-- Modules/
-|   |-- BDO/
-|   |   |-- marketalert.py      # Alert menu, subscription DB logic, DM delivery
-|   |   |-- BDOinformation.py   # Queue and boss timer commands
-|   |   `-- guildspy.py         # Guild member lookup and snapshot comparison
-|   |-- Utilities.py            # General Discord utility commands
-|   `-- fun.py                  # Optional OpenAI / fun commands
+|   `-- BDO/
+|       |-- marketalert.py      # Alert menu, subscription DB logic, DM delivery
+|       |-- BDOinformation.py   # Queue and boss timer commands
+|       `-- guildspy.py         # Guild member lookup and snapshot comparison
 |-- resources/
 |   |-- apikey.example.json     # Local config template
 |   |-- alerts.db               # SQLite alert/item snapshot
@@ -91,13 +89,7 @@ The bot currently requests all Discord intents. In the Discord Developer Portal,
 - `.boss` or `.next` - show upcoming boss spawns.
 - `.boss <name>` - show the next spawn for a specific boss.
 - `/guild <guild_name>` - fetch and compare BDO guild member snapshots.
-- `.ping` - latency check.
-- `/avatar` - display a user's avatar.
 
-## Project Status
+## Current Status
 
-This is a revived portfolio project. The core marketplace-alert architecture is present, but the live polling task in `marketalert.py` is currently commented out so it is not accidentally run while the project is being cleaned up. To re-enable production-style alerting, review the Central Market endpoint behavior, Discord rate limits, database snapshot freshness, and the polling interval before uncommenting `self.check_waitlist.start()`.
-
-## Recruiter-Facing Summary
-
-This project demonstrates backend Python development, API integration, SQL-backed event matching, Discord API usage, and practical automation. It is especially relevant for roles involving backend systems, data ingestion, alerting workflows, automation, and data-oriented application logic.
+The alert menu, database-backed subscriptions, marketplace matching logic, and Discord DM delivery are present. The live polling task in `marketalert.py` is currently commented out so it is not accidentally run during cleanup. Before re-enabling it, review the Central Market endpoint behavior, Discord rate limits, database snapshot freshness, and polling interval.
