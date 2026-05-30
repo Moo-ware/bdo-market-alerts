@@ -1,5 +1,6 @@
 import discord
-from discord.ext import commands, tasks
+import sqlite3
+from discord.ext import commands
 from utils.functions import *
 #######FIX from utils.marketwatcher import mpwatcher
 
@@ -9,13 +10,13 @@ class BDOInfo(commands.Cog):
 
     @commands.command(name = 'queue', aliases = ['q'])
     async def queue(self, ctx):
-        waitList = [] ####### FIX -> mpwatcher.queue
+        waitList = await GetWaitlist()
         embed=discord.Embed(title="In Registrations Queue:", url="https://na-trade.naeu.playblackdesert.com/Home/list/wait", color=0xfe9a9a)
         embed.set_author(name="Central Market [NA]")
-        if len(waitList["_waitList"]) != 0:
-            for i in waitList["_waitList"]:
-                embed.add_field(name="{}: {}".format(matchEnhancement(i['chooseKey']), i['name']), 
-                value="{:,}  ```ansi\n \u001b[0;47m\u001b[1;35m    In {} min    \u001b[0m```".format(i['_pricePerOne'], timeCalc(i['_waitEndTime'])), inline=True)
+        if len(waitList) != 0:
+            for _item_id, name, enhancement_key, wait_end_time, price in waitList:
+                embed.add_field(name="{}: {}".format(await matchEnhancement(enhancement_key), name),
+                value="{:,}  ```ansi\n \u001b[0;47m\u001b[1;35m    In {} min    \u001b[0m```".format(price, timeCalc(wait_end_time)), inline=True)
         else:
             embed.add_field(name="", value="```ansi\n \u001b[0;47m\u001b[1;35m    Nothing is in Queue    \u001b[0m```", inline=False)
             
@@ -69,7 +70,13 @@ class BDOInfo(commands.Cog):
 
     @commands.command(name='find')
     async def find(self, ctx, *, item):
-        list_of_match = findItems(item)
+        connection = sqlite3.connect("resources/alerts.db")
+        cursor = connection.cursor()
+        rows = cursor.execute("SELECT DISTINCT item_id, item_name FROM QueueItems").fetchall()
+        cursor.close()
+        connection.close()
+
+        list_of_match = await findItems(item, rows)
         await ctx.send(list_of_match)
             
 

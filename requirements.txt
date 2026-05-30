@@ -1,6 +1,9 @@
-openai
-discord
-owoify
-pytz
-fuzzywuzzy
+discord.py>=2.3,<3
+requests>=2.31,<3
+beautifulsoup4>=4.12,<5
+pytz>=2023.3
+fuzzywuzzy>=0.18,<1
+python-Levenshtein>=0.25,<1
+openai<1
+owoify>=0.3,<1
 

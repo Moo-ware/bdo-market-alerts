@@ -16,7 +16,7 @@ class marketalert(commands.Cog):
         # self.check_waitlist.start() 
     
     def cog_unload(self):
-        pass # Delte this when enabling the task below
+        pass # Delete this when enabling the task below
         # self.check_waitlist.cancel()
         
     @app_commands.command(name='alert', description='Brings up my alert menu') # Create a slash command
@@ -127,36 +127,42 @@ class UserDB(): # For performing actions of a User's database
     async def get_user_from_db(self, userid):
         connection = sqlite3.connect("resources/alerts.db")
         cursor = connection.cursor()
-        rows = cursor.execute(f"SELECT AlertList.item_id, AlertList.enhancement_level, Enhancement.e_name, AlertList.price, QueueItems.item_name, AlertTypes.alert_type\
+        rows = cursor.execute("SELECT AlertList.item_id, AlertList.enhancement_level, Enhancement.e_name, AlertList.price, QueueItems.item_name, AlertTypes.alert_type\
                               FROM AlertList\
                               INNER JOIN QueueItems ON QueueItems.item_id = AlertList.item_id AND QueueItems.e_level IN (AlertList.enhancement_level, AlertList.enhancement_level + 15)\
                               INNER JOIN Enhancement ON AlertList.enhancement_level = Enhancement.elevel\
                               INNER JOIN AlertTypes ON AlertTypes.alert_id = AlertList.alert_id\
-                              WHERE user_id = {userid}").fetchall() ### To implement if Stock Alert is added in the future ###
+                              WHERE user_id = ?", (userid,)).fetchall() ### To implement if Stock Alert is added in the future ###
         cursor.close()
         connection.close()
         return rows
 
-    async def save_user_to_db(self, statement):
+    async def save_user_to_db(self, userid, itemid, elevel, price, alert_id):
+        if price == 'NULL':
+            price = None
+
         connection = sqlite3.connect("resources/alerts.db")
         cursor = connection.cursor()
-        cursor.execute(statement)
+        cursor.execute("INSERT INTO AlertList VALUES (?, ?, ?, ?, ?)", (userid, itemid, elevel, price, alert_id))
         connection.commit()
         cursor.close()
         connection.close()
     
-    async def remove_item_from_user_db(self, statement):
+    async def remove_item_from_user_db(self, userid, items):
         connection = sqlite3.connect("resources/alerts.db")
         cursor = connection.cursor()
-        cursor.execute(statement).fetchall()
+        cursor.executemany(
+            "DELETE from AlertList WHERE user_id = ? AND item_id = ? AND enhancement_level = ? AND alert_id = ?",
+            [(userid, item[0], item[1], item[2]) for item in items],
+        )
         connection.commit()
         cursor.close()
         connection.close()
 
-    async def remove_all_item_from_user_db(self, statement):
+    async def remove_all_item_from_user_db(self, userid):
         connection = sqlite3.connect("resources/alerts.db")
         cursor = connection.cursor()
-        cursor.execute(statement).fetchall()
+        cursor.execute("DELETE from AlertList WHERE user_id = ?", (userid,))
         connection.commit()
         cursor.close()
         connection.close()
@@ -171,16 +177,13 @@ class User(): # For calling actions of a User's database
         return await self._db.get_user_from_db(self.userid)
     
     async def save_user(self, itemid, elevel, price, alert_id):
-        await self._db.save_user_to_db(f"INSERT INTO AlertList VALUES ({self.userid}, {itemid}, {elevel}, {price}, {alert_id})")
+        await self._db.save_user_to_db(self.userid, itemid, elevel, price, alert_id)
     
     async def remove_item_from_user(self, items):
-        itemid = ', '.join(str(item[0]) for item in items)
-        e_level = ', '.join(str(item[1]) for item in items)
-        alert_id = ', '.join(str(item[2]) for item in items)
-        await self._db.remove_item_from_user_db(f"DELETE from AlertList WHERE user_id = {self.userid} AND item_id IN ({itemid}) AND enhancement_level IN ({e_level}) AND alert_id IN ({alert_id})")
+        await self._db.remove_item_from_user_db(self.userid, items)
     
     async def remove_all_item_from_user(self):
-        await self._db.remove_all_item_from_user_db(f"DELETE from AlertList WHERE user_id = {self.userid}")
+        await self._db.remove_all_item_from_user_db(self.userid)
     
 
 class database(): # For getting all types of info from database
@@ -190,7 +193,7 @@ class database(): # For getting all types of info from database
     async def get_enhancement_level(self, name):
         connection = sqlite3.connect("resources/alerts.db")
         cursor = connection.cursor()
-        level = cursor.execute(f"SELECT elevel FROM Enhancement WHERE e_name = '{name}'").fetchall()
+        level = cursor.execute("SELECT elevel FROM Enhancement WHERE e_name = ?", (name,)).fetchall()
         cursor.close()
         connection.close()
         return level
@@ -198,7 +201,7 @@ class database(): # For getting all types of info from database
     async def get_items_from_level(self, e_level):
         connection = sqlite3.connect("resources/alerts.db")
         cursor = connection.cursor()
-        rows = cursor.execute(f"SELECT item_id, item_name FROM QueueItems WHERE e_level = {e_level} OR e_level={e_level + 15}").fetchall()
+        rows = cursor.execute("SELECT item_id, item_name FROM QueueItems WHERE e_level = ? OR e_level = ?", (e_level, e_level + 15)).fetchall()
         cursor.close()
         connection.close()
         return rows
@@ -208,7 +211,10 @@ class database(): # For getting all types of info from database
         cursor = connection.cursor()
         rows=[]
         for i in list:
-            tmp = cursor.execute(f"SELECT user_id FROM AlertList WHERE item_id = {i[0]} AND enhancement_level IN ({i[2]}, {i[2] - 15})").fetchall()
+            tmp = cursor.execute(
+                "SELECT user_id FROM AlertList WHERE item_id = ? AND enhancement_level IN (?, ?)",
+                (i[0], i[2], i[2] - 15),
+            ).fetchall()
             rows.append(tmp)
         cursor.close()
         connection.close()
@@ -247,7 +253,7 @@ class AlertMenuNormal(discord.ui.View): # Main Alert Menu View
 
     
     @discord.ui.button(label="Create a queue alert", row=0, style=discord.ButtonStyle.primary, emoji="🔔")
-    async def creat_alert_button_callback(self, interaction: discord.Interaction, button):
+    async def create_alert_button_callback(self, interaction: discord.Interaction, button):
         buttonlist = []
         buttonlist.extend([interaction.message, button, self])
         await interaction.response.send_modal(itemModal(buttonlist))
@@ -280,7 +286,7 @@ class AlertMenuMaxed(discord.ui.View): # Secondary Alert Menu when user has reac
 
     
     @discord.ui.button(label="Create a queue alert", row=0, style=discord.ButtonStyle.primary, emoji="🔔", disabled=True)
-    async def creat_alert_button_callback(self, interaction: discord.Interaction, button):
+    async def create_alert_button_callback(self, interaction: discord.Interaction, button):
         await interaction.response.defer()
     
     @discord.ui.button(label="Remove Alert", row=0, style=discord.ButtonStyle.red, emoji="🛑") 
@@ -310,7 +316,7 @@ class AlertMenuNoAlerts(discord.ui.View): # Third Alert Menu when user has no al
 
     
     @discord.ui.button(label="Create a queue alert", row=0, style=discord.ButtonStyle.primary, emoji="🔔")
-    async def creat_alert_button_callback(self, interaction: discord.Interaction, button):
+    async def create_alert_button_callback(self, interaction: discord.Interaction, button):
         buttonlist = []
         buttonlist.extend([interaction.message, button, self])
         await interaction.response.send_modal(itemModal(buttonlist))
@@ -334,7 +340,7 @@ class itemModal(discord.ui.Modal, title="Test test test test"): # Modal that sen
 
     # Creating the select menu (Might move to another Class later just for more organization)
     async def create_select_menu(self, list, e_level):
-        menuoptions = Select(self.button_items, [e_level, str(self.itemGrade).upper()]) # Passing "button_itmes" which contains the view, button and msg id of alert menu.
+        menuoptions = Select(self.button_items, [e_level, str(self.itemGrade).upper()]) # Passing "button_items" which contains the view, button and msg id of alert menu.
         string = ''
         # Adding matching fields to Select menu
         for i in list:
@@ -363,7 +369,7 @@ class itemModal(discord.ui.Modal, title="Test test test test"): # Modal that sen
             view = SelectView(menuoptions)
             await interaction.response.send_message(embed=discord.Embed(title=f'Found a list of possible items related to `{self.itemName}`',
                                                                   description = f'{string}',
-                                                                  color=0xfe9a9a).add_field(name='Please select the corret item below:', value='').set_author(name=interaction.user.name, icon_url=interaction.user.avatar), 
+                                                                  color=0xfe9a9a).add_field(name='Please select the correct item below:', value='').set_author(name=interaction.user.name, icon_url=interaction.user.avatar), 
                                                                   view=view)
             view.message = await interaction.original_response() # view.message represents the message sent above
             view.button_items = self.button_items

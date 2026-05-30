@@ -1,0 +1,4 @@
+{
+  "token": "YOUR_DISCORD_BOT_TOKEN",
+  "openaitoken": "OPTIONAL_OPENAI_API_KEY"
+}

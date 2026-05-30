@@ -7,6 +7,11 @@ from discord import app_commands
 from discord.ext import commands
 
 
+def format_member_changes(members):
+    cleaned = sorted(member for member in members if member.strip())
+    return ", ".join(cleaned) if cleaned else "No changes"
+
+
 class GuildSpy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -56,48 +61,38 @@ class GuildSpy(commands.Cog):
             return
         
         # Sorting members
-        member_string = ""
         members.sort()
-        for i in members:
-            member_string += f"{i}, "
+        member_string = ", ".join(members)
 
         # Database stuff
         result = await self.databaseRetrieve(guild)
         if result is not None:
-            set_old = set(result[0].split(', '))
+            set_old = set(member for member in result[0].split(', ') if member.strip())
             set_new = set(members)
             index_date= result[1]
             # Find the difference between the two sets
             people_left = set_old - set_new
             people_joined = set_new - set_old
 
-            member_left = ""
-            member_joined = ""
-
-            for i in people_left:
-                if i != ' ' or "":
-                    member_left += f"{i}, "
-            
-            for j in people_joined:
-                if j != ' ' or "":
-                    member_joined += f"{j}, "
+            member_left = format_member_changes(people_left)
+            member_joined = format_member_changes(people_joined)
 
         else:
             index_date = "First time Indexing"
-            member_left = None
-            member_joined = None
+            member_left = "No previous snapshot"
+            member_joined = "No previous snapshot"
         
-        await self.databaseWrite(guild, member_string[:-2], date_now)
+        await self.databaseWrite(guild, member_string, date_now)
 
         embed = discord.Embed(title=f"{guild}",
                         url=f"https://www.naeu.playblackdesert.com/en-US/Adventure/Guild/GuildProfile?guildName={guild}&region=na",
                         description=f"**{len(members)}** Members\nCreated on **{date}**",
                         colour=0xfe7162)
 
-        embed.add_field(name="Current Members:", value=f"```{member_string[:-2]}```", inline=False)
+        embed.add_field(name="Current Members:", value=f"```{member_string}```", inline=False)
         embed.add_field(name=f"Changes from [**{index_date}**]:", value="", inline=False)
-        embed.add_field(name="Members Joined:", value=f"{member_joined[:-2]}", inline=True)
-        embed.add_field(name="Members Left:", value=f"{member_left[:-2]}", inline=True)
+        embed.add_field(name="Members Joined:", value=member_joined, inline=True)
+        embed.add_field(name="Members Left:", value=member_left, inline=True)
         embed.set_footer(text=interaction.user.name, icon_url=interaction.user.avatar)
         await interaction.response.send_message(embed=embed)
 

@@ -2,12 +2,29 @@ import discord
 import openai
 import owoify
 import json
+import os
+from pathlib import Path
 from discord.ext import commands
 from discord import app_commands
 
-f = open('resources/apikey.json')
-data = json.load(f)
-openaikey = data.get('openaitoken')
+CONFIG_PATH = Path(__file__).resolve().parents[1] / "resources" / "apikey.json"
+
+
+def get_openai_key():
+    token = os.getenv("OPENAI_API_KEY")
+    if token:
+        return token
+
+    if not CONFIG_PATH.exists():
+        return None
+
+    with CONFIG_PATH.open(encoding="utf-8") as config_file:
+        data = json.load(config_file)
+
+    return data.get("openaitoken")
+
+
+openaikey = get_openai_key()
 
 class fun(commands.Cog):
     def __init__(self, bot):
@@ -32,6 +49,10 @@ class fun(commands.Cog):
     @commands.command(name = 'askgpt', aliases = ['ask'])
     async def askgpt(self, ctx, temp, *, body = None):
         if body is not None:
+            if openaikey is None:
+                await ctx.send('OpenAI API key is not configured.')
+                return
+
             openai.api_key = f"{openaikey}"
             response = await openai.Completion.acreate(
                 model="gpt-4", 
@@ -50,6 +71,10 @@ class fun(commands.Cog):
     async def image(self, ctx, *, body = None):
         if body is None:
             await ctx.send('Please provide information')
+            return
+
+        if openaikey is None:
+            await ctx.send('OpenAI API key is not configured.')
             return
         
         openai.api_key = f"{openaikey}"
