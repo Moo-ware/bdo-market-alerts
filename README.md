@@ -1,8 +1,24 @@
 # Real-Time Marketplace Alert System
 
+![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)
+![discord.py](https://img.shields.io/badge/discord.py-2.x-5865F2?logo=discord&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-subscriptions-003B57?logo=sqlite&logoColor=white)
+![Status](https://img.shields.io/badge/status-revival_cleanup-f59e0b)
+![Scope](https://img.shields.io/badge/scope-BDO_market_alerts-111827)
+
 A Python Discord bot that monitors the Black Desert Online Central Market registration queue and sends personalized item alerts to subscribed users.
 
 The bot polls a live marketplace endpoint, normalizes queue records, compares new records against user subscriptions stored in SQLite, and delivers notifications through Discord direct messages.
+
+## At a Glance
+
+| Area | What it does |
+| --- | --- |
+| Market alerts | Watches the Central Market registration queue and matches new listings against saved subscriptions. |
+| Discord workflow | Uses slash commands, modals, select menus, embeds, and DMs for alert setup and delivery. |
+| Data layer | Stores item metadata, alert types, guild snapshots, and user subscriptions in SQLite. |
+| Guild tools | Looks up BDO guild membership and compares current members against the previous snapshot. |
+| Current state | Core logic is present; live polling is intentionally disabled while the project is being refreshed. |
 
 ## Highlights
 
@@ -21,7 +37,18 @@ The bot polls a live marketplace endpoint, normalizes queue records, compares ne
 - BeautifulSoup for guild page parsing
 - fuzzywuzzy for item-name matching
 
-## Core Flow
+## Alert Flow
+
+```mermaid
+flowchart LR
+    User["Discord user"] --> AlertMenu["/alert menu"]
+    AlertMenu --> Match["Fuzzy item match"]
+    Match --> DB[(SQLite subscriptions)]
+    Market["BDO Central Market API"] --> Watcher["Queue watcher"]
+    Watcher --> Compare["Compare new queue records"]
+    DB --> Compare
+    Compare --> DM["Discord DM alert"]
+```
 
 1. A user opens the alert menu with `/alert`.
 2. The bot loads that user's active subscriptions from SQLite.
