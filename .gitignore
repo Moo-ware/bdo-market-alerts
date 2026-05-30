@@ -6,3 +6,4 @@ sqlitesetup.py
 guilds.db
 alerts.db
 timestamp_test.py
+agent/

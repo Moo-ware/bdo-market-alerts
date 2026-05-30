@@ -64,6 +64,7 @@ Configure the Discord bot token with either an environment variable:
 
 ```powershell
 $env:DISCORD_TOKEN = "your_discord_bot_token"
+$env:DISCORD_GUILD_IDS = "your_test_server_id"
 ```
 
 or create a local config file from the template:
@@ -72,7 +73,11 @@ or create a local config file from the template:
 copy resources\apikey.example.json resources\apikey.json
 ```
 
-Then edit `resources/apikey.json` with your token. `resources/apikey.json` is intentionally ignored by Git.
+Then edit `resources/apikey.json` with your token and development Discord server id. `resources/apikey.json` is intentionally ignored by Git.
+
+Guild ids are optional, but recommended while developing because guild slash command sync is immediate. If no guild id is configured, slash commands sync globally and may take time to appear in Discord.
+
+When guild ids are configured, the bot syncs development copies with a `-local` suffix such as `/alert-local` and `/guild-local`. This keeps them distinct if global slash commands also exist in the same server.
 
 Run the bot:
 
@@ -80,7 +85,7 @@ Run the bot:
 python main.py
 ```
 
-The bot currently requests all Discord intents. In the Discord Developer Portal, enable the privileged intents required by your server and command usage.
+The bot currently requests all Discord intents. In the Discord Developer Portal, enable the privileged intents required by your server and command usage. Prefix commands require Message Content Intent. Slash commands require the bot to be invited with the `bot` and `applications.commands` OAuth2 scopes.
 
 ## Commands
 

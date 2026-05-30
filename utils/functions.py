@@ -1,10 +1,54 @@
 import datetime
 import json
 import requests
-from pytz import timezone
 from fuzzywuzzy import fuzz
+try:
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+except ImportError:
+    ZoneInfo = None
+    ZoneInfoNotFoundError = Exception
 
-eastern = timezone('US/Eastern')
+
+class USEasternTime(datetime.tzinfo):
+    standard_offset = datetime.timedelta(hours=-5)
+    daylight_offset = datetime.timedelta(hours=1)
+
+    @staticmethod
+    def _first_sunday_on_or_after(value):
+        days_to_go = 6 - value.weekday()
+        if days_to_go:
+            value += datetime.timedelta(days=days_to_go)
+        return value
+
+    def dst(self, value):
+        if value is None:
+            return datetime.timedelta(0)
+
+        start = self._first_sunday_on_or_after(datetime.datetime(value.year, 3, 8, 2))
+        end = self._first_sunday_on_or_after(datetime.datetime(value.year, 11, 1, 2))
+        naive_value = value.replace(tzinfo=None)
+        if start <= naive_value < end:
+            return self.daylight_offset
+        return datetime.timedelta(0)
+
+    def utcoffset(self, value):
+        return self.standard_offset + self.dst(value)
+
+    def tzname(self, value):
+        return "EDT" if self.dst(value) else "EST"
+
+
+def get_eastern_timezone():
+    if ZoneInfo is not None:
+        try:
+            return ZoneInfo("America/New_York")
+        except ZoneInfoNotFoundError:
+            pass
+
+    return USEasternTime()
+
+
+eastern = get_eastern_timezone()
 eLevel = {
   0  : "",
   1  : "PRI",

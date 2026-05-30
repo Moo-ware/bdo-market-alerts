@@ -97,7 +97,7 @@ class GuildSpy(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
 async def setup(bot):
-    await bot.add_cog(GuildSpy(bot), guild=discord.Object(id=561610616360534044))
+    await bot.add_cog(GuildSpy(bot))
         
         
 
